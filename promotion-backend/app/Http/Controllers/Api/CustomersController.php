@@ -11,7 +11,11 @@ class CustomersController extends Controller
 {
     public function index(): JsonResponse
     {
-        $customers = Customer::all();
-        return response()->json($customers);
+        try {
+            $customers = Customer::all();    
+            return response()->json($customers);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to get customers'], 500);
+        }        
     }
 }

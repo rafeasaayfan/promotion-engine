@@ -1,155 +1,158 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Plus, Minus, Trash2, Calculator, User, Package, Tag } from 'lucide-react';
+import Products from './sections/products';
+import Customers from './sections/customers';
+import Cart from './sections/cart';
+import Result from './sections/result';
 import axios from "axios";
-import { evaluateRules } from "../../lib/ruleEngine";
 
-import Customers from "./sections/customers";
-import Products from "./sections/products";
+const PromotionEngine = () => {
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [loading, setLoading] = useState(null);
+  const [rules, setRules] = useState([]); // New state for rules
+  const [cart, setCart] = useState({ lines: [] });
+  const [evaluation, setEvaluation] = useState(null);
+  const [error, setError] = useState(null);
 
-export default function Checkout() {
-    const [customer, setCustomer] = useState(null);
-    const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Rules
+        const res = await axios.get("http://127.0.0.1:8000/api/rules");
+        setRules(res.data);
 
-    const [product, setProduct] = useState(null);
-    const [selectedProductId, setSelectedProductId] = useState("");
-    const [quantity, setQuantity] = useState(null);
-
-    const [result, setResult] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [rules, setRules] = useState([]);
-
-    useEffect(() => {
-        const fetchRules = async () => {
-            try {
-                // const res = await axios.get("http://localhost:8000/api/rules");
-                const res = await axios.get("https://promotion-engine-production.up.railway.app/api/rules");
-                
-                setRules(res.data);
-            } catch (err) {
-                alert("Error fetching rules");
-                console.error(err);
-            }
-        };
-        fetchRules();
-    }, []);
-
-    const evaluate = async () => {
-        setLoading(true);
-        try {
-            const facts = {
-                line: {
-                    productId: product.id,
-                    quantity: quantity,
-                    unitPrice: product.unit_price,
-                    categoryId: product.category_id,
-                },
-                customer: {
-                    email: customer.email,
-                    type: customer.type,
-                    loyaltyTier: customer.loyalty_tier,
-                    ordersCount: customer.orders_Count,
-                    city: customer.city
-                },
-                now: new Date().toISOString(), // Add current time for date-based rules
-            };
-
-            const evaluationResult = await evaluateRules(rules, facts);
-
-            const finalLineTotal = (product.unit_price * quantity) - evaluationResult.totalDiscount;
-
-            setResult({
-                applied: evaluationResult.appliedRules.map(r => ({
-                    ruleId: r.ruleId,
-                    discount: Number(r.discount).toFixed(2),
-                    ruleName: r.ruleName,
-                })),
-                totalDiscount: Number(evaluationResult.totalDiscount).toFixed(2),
-                finalLineTotal: Number(finalLineTotal).toFixed(2),
-            });
-        } catch (err) {
-            alert("Error during evaluation");
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+      } catch (err) {
+        setError(err.message);
+        console.error("Failed to fetch initial data:", err);
+      }
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-white to-blue-50/20 flex items-center justify-center p-4 xl:p-0">
-            <div className="w-full xl:w-[75%] mx-auto bg-white border border-black/10 shadow px-5 py-4 rounded-md space-y-5">
+    fetchData();
+  }, []);
 
-                <div className="w-full border-b border-black/10 pb-3">
-                    <h1 className="text-2xl font-bold text-blue-800">Checkout Evaluator</h1>
-                </div>
+  const updateQuantity = (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
 
-                <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    {/* Customers */}
-                    <div className="flex flex-col gap-1">
-                        <h2 className="font-semibold">Selcect a Customer</h2>
-                        <Customers
-                            selectedId={selectedCustomerId}
-                            setSelectedId={setSelectedCustomerId}
-                            selectedCustomer={customer}
-                            setSelectedCustomer={setCustomer}
-                        />
-                    </div>
+    setCart(prevCart => ({
+      ...prevCart,
+      lines: prevCart.lines.map(line =>
+        line.productId === productId
+          ? { ...line, quantity: newQuantity }
+          : line
+      )
+    }));
+  };
 
-                    {/* Products */}
-                    <div className="flex flex-col gap-1">
-                        <h2 className="font-semibold">Select a Product</h2>
+  const removeFromCart = (productId) => {
+    setCart(prevCart => ({
+      ...prevCart,
+      lines: prevCart.lines.filter(line => line.productId !== productId)
+    }));
+  };
 
-                        <Products
-                            selectedProductId={selectedProductId}
-                            setSelectedProductId={setSelectedProductId}
-                            selectedProducts={product}
-                            setSelectedProducts={setProduct}
-                            quantity={quantity}
-                            setQuantity={setQuantity}
-                        />
-                    </div>
+  const evaluateCart = async () => {
+    if (!selectedCustomer || cart.lines.length === 0 || rules.length === 0) {
+      setError('Please select a customer, add items to cart, and ensure rules are loaded.');
+      return;
+    }
 
-                    <div className="lg:col-span-2 flex justify-end">
-                        <button
-                            onClick={evaluate}
-                            disabled={loading || !customer || !product || !quantity}
-                            className={`bg-blue-700 hover:bg-blue-600 w-35 h-9 text-sm rounded font-bold text-white
-                                flex items-center justify-center transition-all duration-200 ease-in-out tracking-wider
-                                ${loading || !customer || !product || !quantity
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : "opacity-100 cursor-pointer hover:-translate-y-[1px] active:scale-89"
-                                }`
-                            }
-                        >
-                            {loading ? "Evaluating..." : "Evaluate"}
-                        </button>
-                    </div>
-                </div>
+    setLoading(true);
+    setError(null);
 
-                {/* Result Display */}
-                {result && (
-                    <div className="mt-4 border-t border-black/20 pt-4">
-                        <div className="flex flex-col gap-1 bg-gradient-to-br from-blue-100 to-green-200 p-4 rounded-md">
-                            <div className="mb-4">
-                                <span className="text-sm font-bold">Applied:</span>
-                                {result.applied.map((r, idx) => (
-                                    <div key={idx} className="w-full xl:max-w-[70%] grid grid-cols-4 gap-5 items-center">
-                                        <p className="col-span-1">-ruleId: {r.ruleId}</p>
-                                        <p className="col-span-1">discount: {r.discount}</p>
-                                        <p className="col-span-2">ruleName: "{r.ruleName}"</p>
-                                    </div>
-                                ))}
-                            </div>
+    const cartSubtotal = calculateCartTotal();
+    const cartItemCount = cart.lines.reduce((count, line) => count + line.quantity, 0);
 
-                            <p className="text-green-600 font-bold">
-                                Total Discount: {result.totalDiscount}
-                            </p>
-                            <p className="text-blue-600 font-bold">
-                                Final Price: {result.finalLineTotal}
-                            </p>
-                        </div>
-                    </div>
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/evaluate', {
+          cart: {
+            lines: cart.lines.map(line => ({
+              productId: line.productId,
+              quantity: line.quantity,
+              unitPrice: line.unitPrice,
+              categoryId: line.categoryId,
+            })),
+            subtotal: cartSubtotal,
+            itemCount: cartItemCount,
+          },
+          customer: {
+            id: selectedCustomer.id,
+            email: selectedCustomer.email,
+            type: selectedCustomer.type,
+            city: selectedCustomer.city,
+            loyaltyTier: selectedCustomer.loyalty_tier, 
+            ordersCount: selectedCustomer.orders_count,
+          },
+          rules: rules, 
+      });
 
-                )}
-            </div>
+      setEvaluation(response.data);
+
+    } catch (err) {
+      setError(err.message);
+      console.error("Evaluation error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearCart = () => {
+    setCart({ lines: [] });
+    setEvaluation(null);
+  };
+
+  const calculateCartTotal = () => {
+    return cart.lines.reduce((total, line) => total + (line.quantity * line.unitPrice), 0);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-200 to-white p-4">
+      <div className="max-w-7xl mx-auto">
+        <header className="text-start mb-5">
+          <h1 className="text-4xl font-bold text-black mb-1">B2B Promotion Engine</h1>
+          <p className="text-gray-600">Advanced rule-based discount calculator</p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          <div className="lg:col-span-2 flex flex-col gap-5">
+            {/* Products Section */}
+            <Products
+              setCart={setCart}
+            />
+
+            {/* Customer Section */}
+            <Customers
+              selectedCustomer={selectedCustomer}
+              setSelectedCustomer={setSelectedCustomer}
+            />
+          </div>
+
+          <div className="lg:col-span-3 flex flex-col gap-5">
+            {/* Cart */}
+            <Cart
+              loading={loading}
+              cart={cart}
+              calculateCartTotal={calculateCartTotal}
+              updateQuantity={updateQuantity}
+              removeFromCart={removeFromCart}
+              evaluateCart={evaluateCart}
+              selectedCustomer={selectedCustomer}
+              clearCart={clearCart}
+            />
+            
+            {/* Results Section */}
+            <Result
+              error={error}
+              evaluation={evaluation}
+              calculateCartTotal={calculateCartTotal}
+            />
+          </div>
         </div>
-    );
-}
+      </div>
+    </div>
+  );
+};
+
+export default PromotionEngine;

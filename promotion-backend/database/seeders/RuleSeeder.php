@@ -13,21 +13,40 @@ class RuleSeeder extends Seeder
     public function run(): void
     {
         Rule::create([
-            'name' => 'Buy 5 Get 1 Free on SKU 123',
+            'name' => 'Testing',
             'salience' => 10,
             'stackable' => false,
             'condition' => json_encode([
                 'operator' => 'AND',
                 'rules' => [
-                    ['field' => 'line.productId', 'operator' => 'EQUALS', 'value' => 1],
-                    ['field' => 'line.quantity', 'operator' => 'GTE', 'value' => 5]
+                    ['field' => 'line.unitPrice', 'operator' => 'GTE', 'value' => 100],
+                    ['field' => 'customer.email', 'operator' => 'ENDS_WITH', 'value' => 'arabiaintelligence.com'],
+                    ['field' => 'customer.loyaltyTier', 'operator' => 'EQUALS', 'value' => 'VIP'],
                 ]
             ]),
             'action' => json_encode([
+                'type' => 'applyPercent',
+                'target' => 'line',
+                'percent' => 20
+            ])
+        ]);
+
+        Rule::create([
+            'name' => 'Buy 5 Get 1 Free on SKU 123',
+            'salience' => 10,
+            'stackable' => false,
+            'condition' => [
+                'operator' => 'AND',
+                'rules' => [
+                    ['field' => 'line.productId', 'operator' => 'EQUALS', 'value' => 1],
+                    ['field' => 'line.quantity', 'operator' => 'GTE', 'value' => 5]
+                ]
+            ],
+            'action' => [
                 'type' => 'applyFreeUnits',
                 'target' => 'line',
                 'quantity' => 1
-            ])
+            ]
         ]);
 
         Rule::create([

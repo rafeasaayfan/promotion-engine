@@ -1,73 +1,95 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Select, Input } from "../../../components/fields";
+import { ShoppingCart, Plus, Minus, Trash2, Calculator, User, Package, Tag } from 'lucide-react';
 
-export default function Products({ selectedProductId, setSelectedProductId, selectedProducts, setSelectedProducts, quantity, setQuantity }) {
-    const [products, setProducts] = useState([]);
 
-    // fetch customers from API
+export default function Products({ setCart }) {
+  const [products, setProducts] = useState([]);
+
+    // fetch products from API
     useEffect(() => {
-        async function fetchCustomers() {
+        async function fetchProducts() {
             try {
-                const res = await axios.get("https://promotion-engine-production.up.railway.app/api/products");
+                // const res = await axios.get("https://promotion-engine-production.up.railway.app/api/products");
+                const res = await axios.get("http://127.0.0.1:8000/api/products");
                 setProducts(res.data);
 
             } catch (err) {
-                console.error("Error fetching customers:", err);
+                console.error("Error fetching products:", err);
             }
         }
 
-        fetchCustomers();
+        fetchProducts();
     }, []);
 
-    useEffect(() => {
-        const product = products.find((c) => c.id === +selectedProductId);
-        setSelectedProducts(product || null);
-    }, [selectedProductId, products, setSelectedProducts]);
+    const addToCart = (product) => {
+        setCart(prevCart => {
+            const existingLine = prevCart.lines.find(line => line.productId === product.id);
+
+            if (existingLine) {
+                return {
+                    ...prevCart,
+                    lines: prevCart.lines.map(line =>
+                        line.productId === product.id
+                            ? { ...line, quantity: line.quantity + 1 }
+                            : line
+                    )
+                };
+            } else {
+                return {
+                    ...prevCart,
+                    lines: [...prevCart.lines, {
+                        productId: product.id,
+                        quantity: 1,
+                        productName: product.name,
+                        unitPrice: product.unit_price,
+                        categoryId: product.category_id
+                    }]
+                };
+            }
+        });
+    };
 
     return (
-        <div className="rounded-md space-y-5">
-            <div className="flex items-center gap-4">
-                <Select
-                    value={selectedProductId}
-                    onChange={(e) => setSelectedProductId(e.target.value)}
-                    placeholder="Products"
-                    options={products.map((c) => ({
-                        value: c.id,
-                        label: `${c.name}`,
-                    }))}
-                />
-
-                <Input
-                    type="number"
-                    value={quantity}
-                    placeholder="quantity"
-                    min={1}
-                    max={100}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "" || Number(val) > 0) {
-                            setQuantity(val);
-                        }
-                    }}
-                />
+        <div className="bg-white/50 rounded-md p-4 border border-black/8">
+            <div className="flex gap-2 items-center mb-4 border-b border-black/8 pb-3">
+                <Package className="text-blue-600" />
+                <h2 className="text-xl font-semibold">Products</h2>
             </div>
 
+            <div className="max-h-80 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-3 ">
+                    {products.map(product => (
+                        <div key={product.id} className="w-full bg-white flex justify-between gap-3 border border-black/8 rounded-lg p-4 hover:shadow transition-shadow">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-medium text-black">{product.name}</h3>
+                                    <p className="text-sm text-gray-500 flex items-center gap-2"><span>Category ID:</span>{product.category_id}</p>
+                                </div>
+                            </div>
 
-            <div className="flex items-center justify-center bg-blue-100 rounded-md p-3 min-h-40 w-full">
-                {selectedProducts && (
-                    <div className="flex flex-col gap-3 w-full h-full">
-                        <p><strong className="text-sm">Name:</strong> {selectedProducts.name}</p>
-                        <p><strong className="text-sm">Category ID:</strong> {selectedProducts.category_id}</p>
-                        <p><strong className="text-sm">Unit Price:</strong> {selectedProducts.unit_price}</p>
-                        <p><strong className="text-sm">Quantity:</strong> {quantity}</p>
-                    </div>
+                            <div className="flex flex-col gap-2">
+                                <div className="font-bold flex items-center gap-2">
+                                    <span className="text-sm">Price:</span>
+                                    <span className="text-green-600">${product.unit_price}</span>
+                                </div>
 
-                )}
-                {!selectedProducts && (
+                                <div className="border-t border-black/8 pt-3" >
+                                    <button
+                                        onClick={() => addToCart(product)}
+                                        className="w-full bg-blue-600 text-sm cursor-pointer text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+                                    >
+                                        <Plus className="w-4 h-4 mr-1" />
+                                        Add to Cart
+                                    </button>
 
-                    <span className="text-gray-500">Nothing Selected Yet</span>
-                )}
+                                </div>
+                            </div>
+
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

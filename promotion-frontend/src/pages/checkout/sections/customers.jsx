@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Select } from "../../../components/fields";
+import { ShoppingCart, Plus, Minus, Trash2, Calculator, User, Package, Tag } from 'lucide-react';
 
-export default function Customers({ selectedId, setSelectedId, selectedCustomer, setSelectedCustomer }) {
+export default function Customers({ selectedCustomer, setSelectedCustomer }) {
     const [customers, setCustomers] = useState([]);
 
-    // fetch customers from API
     useEffect(() => {
         async function fetchCustomers() {
             try {
-                const res = await axios.get("https://promotion-engine-production.up.railway.app/api/customers");
+                // const res = await axios.get("https://promotion-engine-production.up.railway.app/api/customers");
+                const res = await axios.get("http://127.0.0.1:8000/api/customers");
                 setCustomers(res.data);
             } catch (err) {
                 console.error("Error fetching customers:", err);
@@ -19,36 +20,43 @@ export default function Customers({ selectedId, setSelectedId, selectedCustomer,
         fetchCustomers();
     }, []);
 
-    useEffect(() => {
-        const customer = customers.find((c) => c.id === +selectedId);
-        setSelectedCustomer(customer || null);
-    }, [selectedId, customers, setSelectedCustomer]);
-
     return (
-        <div className="rounded-md space-y-5">
-            <Select
-                value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
-                placeholder="Customers"
-                options={customers.map((c) => ({
-                    value: c.id,
-                    label: `${c.email}`,
-                }))}
-            />
+        <div className="bg-white/50 rounded-md p-4 border border-black/8">
+            <div className="flex items-center justify-between mb-4 border-b border-black/8 pb-3">
+                <div className="flex items-center">
+                    <ShoppingCart className="text-green-600 mr-2" />
+                    <h2 className="text-xl font-semibold">Customers</h2>
+                </div>
+            </div>
 
-            <div className="flex items-center justify-center bg-blue-100 rounded-md p-3 min-h-40 w-full">
+            {/* Customer Selection */}
+            <div className="mb-6">
+                <div className="flex items-center mb-2">
+                    <User className="text-purple-600 mr-2 w-4 h-4" />
+                    <label className="font-medium text-gray-700">Select Customer</label>
+                </div>
+                <select
+                    value={selectedCustomer?.id || ''}
+                    onChange={(e) => {
+                        const customer = customers.find(c => c.id === parseInt(e.target.value));
+                        setSelectedCustomer(customer);
+                    }}
+                    className="w-full border cursor-pointer border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="">Choose a customer...</option>
+                    {customers.map(customer => (
+                        <option key={customer.id} value={customer.id}>
+                            {customer.email} ({customer.type}, {customer.loyalty_tier})
+                        </option>
+                    ))}
+                </select>
                 {selectedCustomer && (
-                    <div className="flex flex-col gap-3 w-full h-full">
-                        <p><strong className="text-sm">Email:</strong> {selectedCustomer.email}</p>
-                        <p><strong className="text-sm">City:</strong> {selectedCustomer.city}</p>
-                        <p><strong className="text-sm">Orders Count:</strong> {selectedCustomer.orders_count}</p>
-                        <p><strong className="text-sm">Type:</strong> {selectedCustomer.type}</p>
-                        <p><strong className="text-sm">Loyaly Tier:</strong> {selectedCustomer.loyalty_tier}</p>
+                    <div className="mt-2 p-3 bg-white rounded-lg text-sm">
+                        <p><strong>Type:</strong> {selectedCustomer.type}</p>
+                        <p><strong>Loyalty:</strong> {selectedCustomer.loyalty_tier}</p>
+                        <p><strong>Orders:</strong> {selectedCustomer.orders_count}</p>
+                        <p><strong>City:</strong> {selectedCustomer.city}</p>
                     </div>
-                )}
-                {!selectedCustomer && (
-
-                    <span className="text-gray-500">Nothing Selected Yet</span>
                 )}
             </div>
         </div>

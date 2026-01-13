@@ -7,6 +7,7 @@ use App\Models\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use App\Http\Requests\PromotionRules\RulesRequest;
 
 class RulesController extends Controller
 {
@@ -15,35 +16,27 @@ class RulesController extends Controller
      */
     public function index(): JsonResponse
     {
-        $rules = Rule::orderBySalience()->get();
-        return response()->json($rules);
+        try {
+            $rules = Rule::orderBySalience()->get();
+            return response()->json($rules);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to get rules'], 500);
+        }
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(RulesRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'salience' => 'required|integer',
-            'stackable' => 'required|boolean',
-            'condition' => 'required|json', 
-            'action' => 'required|json',   
-        ]);
+        $data = $request->validated();
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        try {
+            Rule::create($data);
+            return response()->json(['message' => 'Rule created successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to create rule'], 500);
         }
-
-        // Decode condition and action from JSON strings to arrays before saving
-        $data = $request->all();
-        $data['condition'] = json_decode($data['condition'], true);
-        $data['action'] = json_decode($data['action'], true);
-
-        $rule = Rule::create($data);
-
-        return response()->json(['message' => 'Rule created successfully']);
     }
 
     /**
@@ -51,27 +44,19 @@ class RulesController extends Controller
      */
     public function show(Rule $rule): JsonResponse
     {
-        return response()->json($rule);
+        try {
+            return response()->json($rule);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to show rule'], 500);
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Rule $rule): JsonResponse
+    public function update(RulesRequest $request, Rule $rule): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'salience' => 'required|integer',
-            'stackable' => 'required|boolean',
-            'condition' => 'required|json',
-            'action' => 'required|json',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $data = $request->all();
+        $data = $request->validated();
         if (isset($data['condition'])) {
             $data['condition'] = json_decode($data['condition'], true);
         }
@@ -79,9 +64,12 @@ class RulesController extends Controller
             $data['action'] = json_decode($data['action'], true);
         }
 
-        $rule->update($data);
-
-        return response()->json(['message' => 'Rule updated successfully']);
+        try {
+            $rule->update($data);
+            return response()->json(['message' => 'Rule updated successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to update rule'], 500);
+        }
     }
 
     /**
@@ -89,8 +77,11 @@ class RulesController extends Controller
      */
     public function destroy(Rule $rule): JsonResponse
     {
-        $rule->delete();
-
-        return response()->json(['message' => 'Rule deleted successfully']);
+        try {
+            $rule->delete();
+            return response()->json(['message' => 'Rule deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete rule'], 500);
+        }
     }
 }
