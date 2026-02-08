@@ -2,7 +2,7 @@
 
 ## 1.Introduction
 
-This project demonstrates a flexible, structured, and scalable **promotion engine** for a B2B eCommerce checkout system using a **custom PHP rule engine** and **json-rules-engine** in a full-stack Laravel + React architecture.
+This project demonstrates a flexible, structured, and scalable **promotion engine** for a B2B eCommerce checkout system using a **custom PHP rule engine** and **json-rules-engine** in a full-stack Laravel + React architecture + Python engine
 
 It supports structured conditions and actions for rule evaluation, enabling dynamic discounts based on customer or product attributes during checkout.
 
@@ -15,7 +15,7 @@ It supports structured conditions and actions for rule evaluation, enabling dyna
 | Backend    | Laravel 11 (PHP 8.3)                               |
 | Database   | MySQL                                              |
 | Frontend   | React (Vite) + Tailwind CSS                        |
-| Rule Logic | `json-rules-engine` (Frontend)                     |
+| Rule Logic | `json-rules-engine` (Python)                       |
 |            | Created my own custom PHP Rule Engine (Backend)    |
 
 💡 **Attention:** The `json-rules-engine` works with the React checkout page, but the **custom PHP rule engine** is currently testable only via **Postman**.
